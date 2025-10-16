@@ -1,5 +1,25 @@
+# Virtual environment
 venv/
+
+# Python cache and compiled files
 __pycache__/
 *.pyc
-instance/
+*.pyo
+*.pyd
+
+# Databases and logs
+*.sqlite3
+*.db
+*.log
+
+# macOS & Streamlit
+.DS_Store
+/.streamlit/
+
+# Environment variables
 .env
+
+# App-specific ignores
+instance/
+*.pdf
+

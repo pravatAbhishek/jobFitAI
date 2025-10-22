@@ -13,7 +13,7 @@ def preprocess(text):
     """
     text = text.lower()
     text = re.sub(r'\b(a|an|the)\b', '', text)
-    text = re.sub(r'\s+', ' ', text)  # remove extra spaces
+    text = re.sub(r'\s+', ' ', text)  
     return text.strip()
 
 def hybrid_match(resume_skills, jd_keywords, similarity_threshold=0.65):

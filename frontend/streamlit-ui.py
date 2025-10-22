@@ -1,7 +1,7 @@
-
 # frontend/app.py
 
 import streamlit as st
+import requests
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -15,16 +15,12 @@ st.set_page_config(page_title="Resume Skill Matcher", layout="wide")
 # ----------------------------
 # CSS for Sticky Navbar, Background, Overlay, Hover Effects
 # ----------------------------
-# ----------------------------
-# CSS for Sticky Navbar, Background & Overlay
-# ----------------------------
 st.markdown("""
     <style>
-    /* Sticky navbar */
     div[data-baseweb="option-menu"] {
         position: sticky;
         top: 0;
-        z-index: 1000;  /* ensures navbar is above overlay */
+        z-index: 1000;
     }
 
     div[data-baseweb="option-menu"] > div {
@@ -53,7 +49,6 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* Background image */
     .stApp {
         background-image: url("https://images.unsplash.com/photo-1483685678470-3a8a6e8d7a6d");
         background-size: cover;
@@ -61,16 +56,14 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* Black overlay */
     .stApp::before {
         content: "";
-        background-color: rgba(0,0,0,0.4);  /* adjust opacity as needed */
+        background-color: rgba(0,0,0,0.4);
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        z-index: -1;  /* behind navbar */
+        z-index: -1;
     }
 
-    /* Padding for content */
     .main .block-container {
         padding-top: 3rem;
         padding-left: 3rem;
@@ -80,17 +73,33 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 # ----------------------------
-# Dummy backend function
+# Backend Communication Function
 # ----------------------------
 def analyze_resume(resume_file, job_desc):
-    # Replace this with actual skill-matching logic
-    return {
-        'match_score': 78,
-        'matched_skills': ['Python', 'Data Analysis', 'Machine Learning'],
-        'missing_skills': ['Communication', 'Leadership']
-    }
+    backend_url = "http://127.0.0.1:5000/match"  # Flask endpoint
+
+    try:
+        # Ensure the uploaded file is sent as a file object
+        files = {'resume': (resume_file.name, resume_file, resume_file.type)}
+        data = {'job_description': job_desc}
+
+        response = requests.post(backend_url, files=files, data=data)
+
+        if response.status_code == 200:
+            result = response.json()
+            return {
+                'match_score': result.get('match_score', 0),
+                'matched_skills': result.get('common_skills', []),
+                'missing_skills': result.get('missing_skills', [])
+            }
+        else:
+            st.error(f"Backend Error ({response.status_code}): {response.text}")
+            return {'match_score': 0, 'matched_skills': [], 'missing_skills': []}
+
+    except Exception as e:
+        st.error(f"Error connecting to backend: {e}")
+        return {'match_score': 0, 'matched_skills': [], 'missing_skills': []}
 
 # ----------------------------
 # PDF Generation Function
@@ -164,22 +173,18 @@ elif selected == "Demo":
         else:
             result = analyze_resume(resume_file, job_desc)
             
-            # Match Score
             st.subheader("Match Score")
             st.progress(result['match_score']/100)
             st.write(f"**{result['match_score']}%** match with the job description.")
             
-            # Matched Skills
             st.subheader("Matched Skills ✅")
             for skill in result['matched_skills']:
                 st.markdown(f"<span style='color:green;font-weight:bold'>{skill}</span>", unsafe_allow_html=True)
 
-            # Missing Skills
             st.subheader("Missing Skills ❌")
             for skill in result['missing_skills']:
                 st.markdown(f"<span style='color:red;font-weight:bold'>{skill}</span>", unsafe_allow_html=True)
             
-            # Download PDF
             pdf_buffer = generate_pdf(result)
             st.download_button(
                 label="📄 Download PDF Report",
@@ -193,26 +198,17 @@ elif selected == "Demo":
 # ----------------------------
 elif selected == "Info":
     st.title("ℹ️ Information")
-
     with st.container():
-        st.write("Scroll or expand each section for details.")
         with st.expander("About Resume Skill Matcher"):
             st.write("""
-            Resume Skill Matcher is a hackathon project designed to help users quickly see
-            how well their resume matches a job description.
+            Resume Skill Matcher helps users analyze how well their resume matches a given job description.
             """)
         with st.expander("How it Works"):
             st.write("""
             1. Upload your resume (PDF/TXT).  
             2. Paste the job description.  
-            3. Click Analyze to view matched skills, missing skills, and overall match percentage.  
-            4. Download the PDF report for your records.
-            """)
-        with st.expander("Tips for Users"):
-            st.write("""
-            - Ensure your resume is up to date.  
-            - Paste the full job description for best results.  
-            - Review missing skills to improve your resume.
+            3. Click Analyze to view matched skills, missing skills, and match percentage.  
+            4. Download the PDF report.
             """)
 
 # ----------------------------
@@ -233,4 +229,3 @@ elif selected == "Contact":
         st.write(f"- **{name}**: {email}")
 
     st.write("- GitHub: https://github.com/TeamCatalyst")
-
